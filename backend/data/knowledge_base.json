@@ -1,0 +1,33 @@
+{
+  "sdgs": {
+    "11": {
+      "title": "Sustainable Cities and Communities",
+      "keywords": ["traffic", "housing", "transport", "pollution", "waste", "public spaces", "urban", "slum", "safety"],
+      "description": "Make cities and human settlements inclusive, safe, resilient and sustainable."
+    },
+    "6": {
+      "title": "Clean Water and Sanitation",
+      "keywords": ["water", "sanitation", "sewage", "drainage", "hygiene", "drinking", "leak", "contamination"],
+      "description": "Ensure availability and sustainable management of water and sanitation for all."
+    },
+    "12": {
+      "title": "Responsible Consumption and Production",
+      "keywords": ["recycling", "plastic", "consumer", "waste management", "chemicals", "reuse", "efficiency"],
+      "description": "Ensure sustainable consumption and production patterns."
+    },
+    "13": {
+      "title": "Climate Action",
+      "keywords": ["climate", "clean energy", "emissions", "global warming", "carbon", "weather", "disaster"],
+      "description": "Take urgent action to combat climate change and its impacts."
+    }
+  },
+  "best_practices": [
+    "Promote public transport and carpooling to reduce traffic and emissions.",
+    "Implement community composting and recycling programs.",
+    "Repair water leaks and install water-saving fixtures.",
+    "Plant native trees to improve air quality and reduce urban heat islands.",
+    "Organize community clean-up drives.",
+    "Advocate for better street lighting to improve safety.",
+    "Support local businesses to reduce transport emissions."
+  ]
+}
