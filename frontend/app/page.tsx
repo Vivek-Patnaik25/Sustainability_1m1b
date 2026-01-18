@@ -43,11 +43,11 @@ export default function Home() {
         </motion.p>
 
         <motion.div variants={item} className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
-          <Link href="/analyzer" className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white transition-all duration-200 bg-green-600 rounded-full hover:bg-green-700 hover:shadow-lg hover:shadow-green-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600">
+          <Link href="/analyzer" className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white transition-all duration-200 bg-green-600 rounded-full hover:bg-green-700 hover:shadow-xl hover:shadow-green-500/40 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600 active:scale-95">
             Start Analysis
             <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </Link>
-          <Link href="/responsible-ai" className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-gray-700 transition-all duration-200 bg-white border border-gray-200 rounded-full hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
+          <Link href="/responsible-ai" className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-gray-700 transition-all duration-200 bg-white border border-gray-200 rounded-full hover:bg-gray-50 hover:border-gray-300 hover:shadow-lg hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 active:scale-95">
             Responsible AI Approach
           </Link>
         </motion.div>
@@ -77,10 +77,10 @@ export default function Home() {
           <motion.div
             key={idx}
             variants={item}
-            whileHover={{ y: -5 }}
-            className="glass-card p-8 rounded-2xl transition-all duration-300 border border-white/60"
+            whileHover={{ y: -12, scale: 1.02 }}
+            className="glass-card p-8 rounded-2xl transition-all duration-300 border border-white/60 hover:shadow-2xl hover:shadow-blue-500/10 cursor-default"
           >
-            <div className={`w-14 h-14 bg-${feature.color}-50 text-${feature.color}-600 rounded-2xl flex items-center justify-center mb-6`}>
+            <div className={`w-14 h-14 bg-${feature.color}-50 text-${feature.color}-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm`}>
               <feature.icon className="h-7 w-7" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
