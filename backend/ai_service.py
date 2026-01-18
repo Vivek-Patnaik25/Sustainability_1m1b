@@ -2,6 +2,7 @@ import os
 import json
 import google.generativeai as genai
 from dotenv import load_dotenv
+import glob
 
 # Load env variables (try current dir and parent dir)
 load_dotenv()
@@ -15,77 +16,92 @@ else:
 
 MODEL_NAME = "gemini-2.5-flash"
 
-def load_knowledge_base():
+def load_rag_knowledge_base():
+    """
+    Loads markdown files from the data/rag_docs directory.
+    Returns a string containing the combined knowledge base.
+    """
+    kb_content = ""
     try:
-        # Assuming the code is run from backend/ directory
-        path = os.path.join("data", "knowledge_base.json")
-        if not os.path.exists(path):
-            # Fallback if run from root
-            path = os.path.join("backend", "data", "knowledge_base.json")
+        # Define path - support running from root or backend/
+        base_path = "data/rag_docs"
+        if not os.path.exists(base_path):
+            base_path = "backend/data/rag_docs"
         
-        with open(path, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Error loading knowledge base: {e}")
-        return {"sdgs": {}, "best_practices": []}
+        if not os.path.exists(base_path):
+            print(f"Warning: RAG docs path not found at {base_path}")
+            return "Knowledge Base not found."
 
-KB = load_knowledge_base()
+        # Read all .md files
+        md_files = glob.glob(os.path.join(base_path, "*.md"))
+        
+        for file_path in md_files:
+            filename = os.path.basename(file_path)
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+                kb_content += f"\n--- DOCUMENT: {filename} ---\n{content}\n"
+        
+        return kb_content
+    except Exception as e:
+        print(f"Error loading RAG Knowledge Base: {e}")
+        return "Error loading Knowledge Base."
+
+RAG_CONTEXT = load_rag_knowledge_base()
 
 def analyze_issues(texts: list[str]):
     """
     Analyzes a list of text entries to identify sustainability issues,
-    map them to SDGs, and provide recommendations.
+    map them to SDGs using a lightweight RAG approach.
     """
     if not API_KEY:
         return {"error": "GEMINI_API_KEY is missing."}
 
     results = []
     
-    # Simple "RAG": Inject KB info into prompt
-    sdg_info = json.dumps(KB["sdgs"], indent=2)
-    best_practices = "\n".join(KB["best_practices"])
-
+    # RAG: We inject the specific UN SDG definitions and targets into the prompt
+    # ensuring the model 'retrieves' or adheres to this specific knowledge.
+    
     model = genai.GenerativeModel(MODEL_NAME)
 
     for text in texts:
         prompt = f"""
-        You are an AI assistant for the "AI-Powered Local Sustainability Issue Analyzer".
-        Your goal is to analyze the following user-reported issue text and map it to one of the following UN SDGs:
-        - SDG 11 (Sustainable Cities & Communities) - Primary
-        - SDG 6 (Clean Water & Sanitation)
-        - SDG 12 (Responsible Consumption & Production)
-        - SDG 13 (Climate Action)
-        
-        Use the provided Knowledge Base context to help your decision and recommendations.
+        You are an AI assistant for the "1M1B AI for Sustainability" internship project.
+        Your task is to analyze local issue reports using the provided Knowledge Base.
 
-        Knowledge Base:
-        SDGs: {sdg_info}
-        Best Practices: {best_practices}
+        STRICT INSTRUCTIONS:
+        1. Context-Grounded Generation (RAG): You must base your SDG classification and "Why" explanation on the provided Knowledge Base documents.
+        2. Transparency: Explicitly cite which SDG Target or concept from the documents matches the issue.
+        3. Responsible AI: Your recommendations should be helpful and safe, but clearly state they are AI-generated suggestions, not legal advice.
 
-        User Input: "{text}"
+        KNOWLEDGE BASE (Trusted Sources):
+        {RAG_CONTEXT}
 
-        Task:
-        1. Identify the core issue (e.g., "overflowing trash", "water leak").
-        2. Classify the SDG (Choose the MOST relevant one from 6, 11, 12, 13. Default to 11 if unsure but relevant to city).
-        3. Estimate Severity (Low, Medium, High) based on urgency and sentiment.
-        4. Provide a Summary (1 sentence).
-        5. Suggest an Action (based on best practices or general sustainability logic).
-        6. Explain WHY you chose this SDG (Explainable AI).
+        USER REPORT:
+        "{text}"
 
-        Output JSON structure ONLY:
+        TASK:
+        1. Identify the Core Issue.
+        2. Classify SDG: Choose the MOST relevant SDG (11, 6, 12, or 13) from the Knowledge Base.
+        3. Estimate Severity (Low, Medium, High).
+        4. Recommend Action: Suggest a practical step based on the "General Sustainability Best Practices" or specific SDG targets.
+        5. Explain Logic (RAG): Explain *why* you chose this SDG by quoting or referencing a specific target (e.g., "Aligns with Target 11.6 regarding waste management").
+        6. Cite Sources: List the specific document names used (e.g., "sdg_11.md").
+
+        OUTPUT JSON format ONLY:
         {{
-            "issue": "string",
-            "sdg": "string (e.g., 'SDG 11')",
-            "severity": "string",
-            "summary": "string",
-            "recommendation": "string",
-            "explanation": "string"
+            "issue": "Brief description of the issue",
+            "sdg": "SDG ##",
+            "severity": "Low/Medium/High",
+            "summary": "One sentence summary",
+            "recommendation": "Actionable advice",
+            "explanation": "Explanation citing specific targets/documents",
+            "rag_sources": ["List of document names used"]
         }}
         """
 
         try:
             response = model.generate_content(prompt)
-            # Basic cleanup to ensure JSON parsing if model adds backticks
+            # Basic cleanup
             content = response.text.strip()
             if content.startswith("```json"):
                 content = content[7:]

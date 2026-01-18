@@ -5,6 +5,7 @@ export interface AnalysisResult {
     summary: string;
     recommendation: string;
     explanation: string;
+    rag_sources?: string[];
 }
 
 interface IssueCardProps {
@@ -48,12 +49,19 @@ export default function IssueCard({ originalText, analysis }: IssueCardProps) {
                 </div>
 
                 <div className="border-t border-gray-100 pt-3">
-                    <button className="text-xs text-gray-400 hover:text-gray-600 underline" title={analysis.explanation}>
-                        Why did AI choose this? (Explainability)
-                    </button>
-                    <p className="text-xs text-gray-500 mt-1">
-                        {analysis.explanation}
-                    </p>
+                    <div className="mb-2">
+                        <span className="text-xs font-bold text-gray-500 uppercase">AI Explanation (RAG):</span>
+                        <p className="text-xs text-gray-600 mt-1">
+                            {analysis.explanation}
+                        </p>
+                    </div>
+
+                    {analysis.rag_sources && analysis.rag_sources.length > 0 && (
+                        <div className="mt-2 text-xs text-gray-400">
+                            <span className="font-semibold">Knowledge Sources: </span>
+                            {analysis.rag_sources.join(", ")}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
