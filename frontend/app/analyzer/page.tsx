@@ -75,9 +75,29 @@ export default function AnalyzerPage() {
         };
 
         recognitionRef.current.onresult = (event: any) => {
-            const transcript = event.results[0][0].transcript;
-            setInputText((prev) => prev ? prev + '\n' + transcript : transcript);
+            // Get the last result
+            const lastResult = event.results[event.results.length - 1];
+            const transcript = lastResult[0].transcript;
+
+            // Only update active text if it's a final result or just replace current line logic
+            // For simplicity in this demo, we will just SET the text content to the transcript of the current session
+            // If the user wants to say multiple sentences, they can rely on the continuous=false behavior 
+            // where they click mic -> say sentence -> stops. 
+            // If they click again, we can either append or replace. 
+            // Based on user feedback ("Water is leaking" repeated), it seems interim results were appending.
+
+            if (lastResult.isFinal) {
+                // If it's final, append it properly or just set it if it's the first time
+                setInputText((prev) => {
+                    const cleanPrev = prev.trim();
+                    return cleanPrev ? cleanPrev + ' ' + transcript : transcript;
+                });
+            }
         };
+
+        recognitionRef.current.audiostart = () => {
+            // Optional: visual feedback
+        }
 
         recognitionRef.current.start();
     };
