@@ -4,6 +4,8 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { analyzeTexts } from '@/lib/api';
 import { Loader2, Mic, Image as ImageIcon, Type, X, Upload } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import clsx from 'clsx';
 
 export default function AnalyzerPage() {
     const [activeTab, setActiveTab] = useState<'text' | 'voice' | 'image'>('text');
@@ -65,7 +67,7 @@ export default function AnalyzerPage() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = false;
-        recognitionRef.current.interimResults = false;
+        recognitionRef.current.interimResults = true; // Changed to true for visuals, but we rely on final
 
         recognitionRef.current.onstart = () => setIsRecording(true);
         recognitionRef.current.onend = () => setIsRecording(false);
@@ -75,29 +77,16 @@ export default function AnalyzerPage() {
         };
 
         recognitionRef.current.onresult = (event: any) => {
-            // Get the last result
             const lastResult = event.results[event.results.length - 1];
             const transcript = lastResult[0].transcript;
 
-            // Only update active text if it's a final result or just replace current line logic
-            // For simplicity in this demo, we will just SET the text content to the transcript of the current session
-            // If the user wants to say multiple sentences, they can rely on the continuous=false behavior 
-            // where they click mic -> say sentence -> stops. 
-            // If they click again, we can either append or replace. 
-            // Based on user feedback ("Water is leaking" repeated), it seems interim results were appending.
-
             if (lastResult.isFinal) {
-                // If it's final, append it properly or just set it if it's the first time
                 setInputText((prev) => {
                     const cleanPrev = prev.trim();
                     return cleanPrev ? cleanPrev + ' ' + transcript : transcript;
                 });
             }
         };
-
-        recognitionRef.current.audiostart = () => {
-            // Optional: visual feedback
-        }
 
         recognitionRef.current.start();
     };
@@ -108,90 +97,132 @@ export default function AnalyzerPage() {
         }
     };
 
+    const tabs = [
+        { id: 'text', icon: Type, label: 'Text Input' },
+        { id: 'voice', icon: Mic, label: 'Voice Input' },
+        { id: 'image', icon: ImageIcon, label: 'Image Upload' }
+    ];
+
     return (
-        <div className="max-w-3xl mx-auto space-y-8">
-            <div className="text-center space-y-2">
-                <h1 className="text-3xl font-bold text-gray-900">Sustainability Issue Analyzer</h1>
-                <p className="text-gray-500">
-                    Report issues using Text, Voice, or Images. AI will analyze and classify them.
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-3xl mx-auto space-y-8 pt-20 pb-20"
+        >
+            <div className="text-center space-y-3">
+                <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Sustainability Issue Analyzer</h1>
+                <p className="text-gray-500 text-lg">
+                    Report issues using Text, Voice, or Images. Our AI will classify and analyze them instantly.
                 </p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                {/* Tabs */}
-                <div className="flex border-b border-gray-100">
-                    <button
-                        onClick={() => setActiveTab('text')}
-                        className={`flex-1 py-4 text-sm font-medium flex items-center justify-center transition-colors ${activeTab === 'text' ? 'text-green-600 border-b-2 border-green-600 bg-green-50' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <Type className="h-4 w-4 mr-2" /> Text Input
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('voice')}
-                        className={`flex-1 py-4 text-sm font-medium flex items-center justify-center transition-colors ${activeTab === 'voice' ? 'text-green-600 border-b-2 border-green-600 bg-green-50' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <Mic className="h-4 w-4 mr-2" /> Voice Input
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('image')}
-                        className={`flex-1 py-4 text-sm font-medium flex items-center justify-center transition-colors ${activeTab === 'image' ? 'text-green-600 border-b-2 border-green-600 bg-green-50' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <ImageIcon className="h-4 w-4 mr-2" /> Image Upload
-                    </button>
+            <div className="glass-card rounded-2xl overflow-hidden shadow-xl border border-white/60">
+                {/* Custom Tabs */}
+                <div className="bg-gray-50/50 border-b border-gray-200 p-2">
+                    <div className="flex space-x-1 bg-gray-200/50 p-1 rounded-xl">
+                        {tabs.map((tab) => {
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    className={clsx(
+                                        "relative flex-1 flex items-center justify-center py-2.5 text-sm font-semibold rounded-lg transition-all duration-200",
+                                        isActive ? "text-green-700" : "text-gray-500 hover:text-gray-700"
+                                    )}
+                                >
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="activeTab"
+                                            className="absolute inset-0 bg-white shadow-sm rounded-lg"
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        />
+                                    )}
+                                    <span className="relative z-10 flex items-center gap-2">
+                                        <tab.icon className="h-4 w-4" />
+                                        {tab.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
 
-                <div className="p-6 space-y-4">
-                    {/* Content Area */}
-                    {activeTab === 'text' && (
-                        <textarea
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            placeholder="Type your issue here. Example: 'The trash bin on Main St is overflowing.'"
-                            className="w-full h-48 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-gray-900 placeholder-gray-400"
-                        />
-                    )}
+                <div className="p-8 min-h-[320px]">
+                    <AnimatePresence mode='wait'>
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className="h-full"
+                        >
+                            {activeTab === 'text' && (
+                                <textarea
+                                    value={inputText}
+                                    onChange={(e) => setInputText(e.target.value)}
+                                    placeholder="Describe the issue here...&#10;Example: 'The trash bin on Main St is overflowing.'"
+                                    className="w-full h-64 p-5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-gray-900 placeholder-gray-400 text-lg leading-relaxed shadow-inner"
+                                />
+                            )}
 
-                    {activeTab === 'voice' && (
-                        <div className="flex flex-col items-center justify-center h-48 space-y-4 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
-                            <button
-                                onClick={isRecording ? stopListening : startListening}
-                                className={`p-6 rounded-full transition-all ${isRecording ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-green-600 hover:bg-green-700'}`}
-                            >
-                                <Mic className="h-8 w-8 text-white" />
-                            </button>
-                            <p className="text-gray-500 text-sm">
-                                {isRecording ? "Listening... Click to stop." : "Click microphone to speak."}
-                            </p>
-                            {inputText && (
-                                <div className="w-full px-4 text-center">
-                                    <p className="text-xs text-gray-400 uppercase font-bold">Transcribed Text:</p>
-                                    <p className="text-gray-700 italic mt-1">"{inputText}"</p>
+                            {activeTab === 'voice' && (
+                                <div className="flex flex-col items-center justify-center h-64 space-y-6">
+                                    <button
+                                        onClick={isRecording ? stopListening : startListening}
+                                        className={clsx(
+                                            "p-8 rounded-full transition-all duration-300 shadow-lg",
+                                            isRecording
+                                                ? "bg-red-50 text-red-600 ring-4 ring-red-100 animate-pulse"
+                                                : "bg-green-600 text-white hover:bg-green-700 hover:scale-110 hover:shadow-green-500/30"
+                                        )}
+                                    >
+                                        <Mic className={clsx("h-10 w-10", isRecording && "animate-bounce")} />
+                                    </button>
+                                    <div className="text-center space-y-1">
+                                        <p className="text-gray-900 font-medium text-lg">
+                                            {isRecording ? "Listening..." : "Click to Start Recording"}
+                                        </p>
+                                        <p className="text-gray-500 text-sm">
+                                            Speak clearly about the issue.
+                                        </p>
+                                    </div>
+                                    {inputText && (
+                                        <div className="w-full max-w-lg bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
+                                            <p className="text-gray-700 italic">"{inputText}"</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                        </div>
-                    )}
 
-                    {activeTab === 'image' && (
-                        <div className="flex flex-col items-center justify-center h-48 space-y-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 relative">
-                            {imageFile ? (
-                                <div className="relative w-full h-full flex flex-col items-center justify-center">
-                                    <p className="text-green-600 font-medium flex items-center">
-                                        <ImageIcon className="h-5 w-5 mr-2" />
-                                        {imageFile.name}
-                                    </p>
-                                    <button
-                                        onClick={() => setImageFile(null)}
-                                        className="mt-2 text-sm text-red-500 hover:text-red-700"
-                                    >
-                                        Remove Image
-                                    </button>
-                                </div>
-                            ) : (
-                                <>
-                                    <Upload className="h-10 w-10 text-gray-400" />
-                                    <div className="text-center">
-                                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-green-500">
-                                            <span>Upload a file</span>
+                            {activeTab === 'image' && (
+                                <div className="h-64 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors relative group">
+                                    {imageFile ? (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                                            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-3">
+                                                <ImageIcon className="h-8 w-8" />
+                                            </div>
+                                            <p className="text-gray-900 font-medium text-lg truncate max-w-xs">
+                                                {imageFile.name}
+                                            </p>
+                                            <p className="text-gray-500 text-sm mb-4">
+                                                {(imageFile.size / 1024 / 1024).toFixed(2)} MB
+                                            </p>
+                                            <button
+                                                onClick={() => setImageFile(null)}
+                                                className="px-4 py-2 bg-white text-red-500 text-sm font-semibold rounded-lg shadow-sm border border-gray-200 hover:bg-red-50 transition-colors"
+                                            >
+                                                Change Image
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <label htmlFor="file-upload" className="absolute inset-0 cursor-pointer flex flex-col items-center justify-center">
+                                            <div className="p-4 bg-white rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform duration-200">
+                                                <Upload className="h-8 w-8 text-green-600" />
+                                            </div>
+                                            <p className="text-lg font-medium text-gray-900">Click to upload or drag and drop</p>
+                                            <p className="text-sm text-gray-500 mt-1">SVG, PNG, JPG or GIF (max 5MB)</p>
                                             <input
                                                 id="file-upload"
                                                 name="file-upload"
@@ -199,51 +230,50 @@ export default function AnalyzerPage() {
                                                 className="sr-only"
                                                 accept="image/*"
                                                 onChange={(e) => {
-                                                    if (e.target.files?.[0]) {
-                                                        setImageFile(e.target.files[0]);
-                                                    }
+                                                    if (e.target.files?.[0]) setImageFile(e.target.files[0]);
                                                 }}
                                             />
                                         </label>
-                                        <p className="pl-1 text-gray-500">or drag and drop</p>
-                                    </div>
-                                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
-                                </>
+                                    )}
+                                </div>
                             )}
-                        </div>
-                    )}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
 
-                    {error && (
-                        <div className="p-3 bg-red-50 text-red-700 rounded-md text-sm">
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="px-8 pb-4"
+                    >
+                        <div className="p-4 bg-red-50 text-red-700 rounded-xl text-sm flex items-center gap-2 border border-red-100">
+                            <X className="h-4 w-4" />
                             {error}
                         </div>
-                    )}
+                    </motion.div>
+                )}
 
-                    <div className="flex justify-between items-center pt-2">
-                        <span className="text-xs text-gray-400">
-                            AI-assisted analysis may vary. Please review results.
-                        </span>
-                        <button
-                            onClick={handleAnalyze}
-                            disabled={isLoading || (!inputText.trim() && !imageFile)}
-                            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
-                                    Analyzing...
-                                </>
-                            ) : (
-                                'Analyze Issue'
-                            )}
-                        </button>
-                    </div>
+                <div className="bg-gray-50 px-8 py-5 border-t border-gray-100 flex justify-between items-center">
+                    <span className="text-xs text-gray-400 font-medium">
+                        Powered by Gemini 2.5 Flash
+                    </span>
+                    <button
+                        onClick={handleAnalyze}
+                        disabled={isLoading || (!inputText.trim() && !imageFile)}
+                        className="inline-flex items-center px-8 py-3.5 border border-transparent text-lg font-bold rounded-xl text-white bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-green-600/20"
+                    >
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
+                                Analyzing...
+                            </>
+                        ) : (
+                            'Analyze Issue'
+                        )}
+                    </button>
                 </div>
             </div>
-
-            <div className="text-center text-sm text-gray-400">
-                <p>Voice and Image inputs are processed to text for transparent analysis.</p>
-            </div>
-        </div>
+        </motion.div>
     );
 }
