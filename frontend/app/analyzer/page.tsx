@@ -18,18 +18,37 @@ export default function AnalyzerPage() {
     const recognitionRef = useRef<any>(null);
 
     const handleAnalyze = async () => {
-        if (!inputText.trim() && !imageFile) return;
-
         setIsLoading(true);
         setError(null);
 
-        const texts = inputText.split('\n').filter(line => line.trim().length > 0);
+        let texts: string[] = [];
+        let fileToSend: File | undefined = undefined;
+
+        // Only process the ACTIVE tab's input
+        if (activeTab === 'text' || activeTab === 'voice') {
+            if (!inputText.trim()) {
+                setError("Please enter or record some text.");
+                setIsLoading(false);
+                return;
+            }
+            texts = inputText.split('\n').filter(line => line.trim().length > 0);
+        }
+
+        if (activeTab === 'image') {
+            if (!imageFile) {
+                setError("Please upload an image.");
+                setIsLoading(false);
+                return;
+            }
+            fileToSend = imageFile;
+        }
 
         try {
-            const result = await analyzeTexts(texts, imageFile || undefined);
+            const result = await analyzeTexts(texts, fileToSend);
             sessionStorage.setItem('analysisResults', JSON.stringify(result.results || []));
             router.push('/results');
         } catch (err: any) {
+            console.error("Analysis error:", err);
             setError(err.message || "An unexpected error occurred.");
         } finally {
             setIsLoading(false);
